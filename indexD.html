@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Extract Password</title>
+</head>
+<body>
+    <h1>Извлечь пароль из изображения</h1>
+    <input type="file" id="inputImage" accept="image/*">
+    <button id="decodeButton">Извлечь</button>
+    <p id="outputText"></p>
+    <canvas id="canvas" style="display: none;"></canvas>
+
+    <script>
+        document.getElementById('decodeButton').addEventListener('click', () => {
+            const fileInput = document.getElementById('inputImage');
+            if (!fileInput.files[0]) {
+                alert("Загрузите изображение!");
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.getElementById('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    ctx.drawImage(img, 0, 0);
+
+                    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    const pixels = imageData.data;
+
+                    let binaryData = "";
+                    for (let i = 0; i < pixels.length; i += 4) {
+                        binaryData += (pixels[i] & 1); // Считываем младший бит красного канала
+                    }
+
+                    // Разбиваем бинарный текст на байты и ищем стоп-маркер
+                    const bytes = binaryData.match(/.{1,8}/g);
+                    const secretChars = [];
+                    for (const byte of bytes) {
+                        if (byte === '11111110') break; // Стоп-маркер
+                        secretChars.push(String.fromCharCode(parseInt(byte, 2)));
+                    }
+
+                    document.getElementById('outputText').innerText = "Извлеченный пароль: " + secretChars.join('');
+                };
+                img.src = event.target.result;
+            };
+            reader.readAsDataURL(fileInput.files[0]);
+        });
+    </script>
+</body>
+</html>
